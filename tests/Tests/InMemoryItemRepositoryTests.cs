@@ -66,4 +66,17 @@ public class InMemoryItemRepositoryTests
     Assert.Equal(3, restarted.FindAll().Count);
     Assert.DoesNotContain(restarted.FindAll(), item => item.Name == "Ephemeral");
   }
+
+  [Fact]
+  public void Assigns_distinct_ids_under_concurrent_saves()
+  {
+    var store = new InMemoryItemRepository();
+    store.Clear();
+
+    Parallel.For(0, 1000, index => store.Save(new Item(null, $"Item {index}", null)));
+
+    var ids = store.FindAll().Select(item => item.Id!.Value).ToList();
+    Assert.Equal(1000, ids.Count);
+    Assert.Equal(1000, ids.Distinct().Count());
+  }
 }
