@@ -1,0 +1,6 @@
+is_global = true
+
+# Code-metrics analyzers are off by default; the complexity gate runs them.
+dotnet_diagnostic.CA1502.severity = error
+dotnet_diagnostic.CA1505.severity = error
+dotnet_diagnostic.CA1506.severity = error
