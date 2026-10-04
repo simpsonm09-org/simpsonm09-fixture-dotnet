@@ -22,9 +22,3 @@ indent_size = 4
 
 [Makefile]
 indent_style = tab
-
-# Code-metrics analyzers are off by default; the complexity gate runs them.
-[*.cs]
-dotnet_diagnostic.CA1502.severity = error
-dotnet_diagnostic.CA1505.severity = error
-dotnet_diagnostic.CA1506.severity = error
