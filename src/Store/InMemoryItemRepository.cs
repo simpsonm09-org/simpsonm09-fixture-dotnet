@@ -13,7 +13,6 @@ public readonly record struct ItemSeed(string Name, string? Description);
 /// </summary>
 public sealed class InMemoryItemRepository : IItemRepository
 {
-  /// <summary>The three items seeded on startup so the API has something to return.</summary>
   public static readonly IReadOnlyList<ItemSeed> DefaultItems =
   [
     new("Widget", "A small widget"),
