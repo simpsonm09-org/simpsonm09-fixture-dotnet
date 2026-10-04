@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 
 namespace Fixture.Dotnet.Tests;
 
@@ -57,6 +58,16 @@ public class ItemEndpointsTests : IClassFixture<ItemApiFactory>
   }
 
   [Fact]
+  public async Task Returns_the_id_as_a_json_number_not_a_string()
+  {
+    var created = await _client.PostAsJsonAsync("/items", new { name = "Widget" });
+
+    using var document = JsonDocument.Parse(await created.Content.ReadAsStringAsync());
+
+    Assert.Equal(JsonValueKind.Number, document.RootElement.GetProperty("id").ValueKind);
+  }
+
+  [Fact]
   public async Task Stores_a_missing_description_as_null()
   {
     var created = await _client.PostAsJsonAsync("/items", new { name = "No description" });
@@ -85,8 +96,10 @@ public class ItemEndpointsTests : IClassFixture<ItemApiFactory>
     var response = await _client.PutAsJsonAsync("/items/999", new { name = "X" });
 
     Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
     var problem = await response.Content.ReadFromJsonAsync<ProblemDto>();
     Assert.Equal("Item not found", problem!.Title);
+    Assert.Equal(404, problem.Status);
   }
 
   [Fact]
@@ -95,8 +108,10 @@ public class ItemEndpointsTests : IClassFixture<ItemApiFactory>
     var response = await _client.DeleteAsync("/items/999");
 
     Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
     var problem = await response.Content.ReadFromJsonAsync<ProblemDto>();
     Assert.Equal("Item not found", problem!.Title);
+    Assert.Equal(404, problem.Status);
   }
 
   [Theory]
@@ -107,6 +122,9 @@ public class ItemEndpointsTests : IClassFixture<ItemApiFactory>
     var response = await _client.PostAsJsonAsync("/items", new { name });
 
     Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+    var problem = await response.Content.ReadFromJsonAsync<ProblemDto>();
+    Assert.Equal(400, problem!.Status);
   }
 
   [Fact]
@@ -115,6 +133,9 @@ public class ItemEndpointsTests : IClassFixture<ItemApiFactory>
     var response = await _client.PostAsJsonAsync("/items", new { name = new string('a', 201) });
 
     Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+    var problem = await response.Content.ReadFromJsonAsync<ProblemDto>();
+    Assert.Equal(400, problem!.Status);
   }
 
   [Fact]
@@ -124,6 +145,9 @@ public class ItemEndpointsTests : IClassFixture<ItemApiFactory>
       "/items", new { name = "Ok", description = new string('a', 2001) });
 
     Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+    var problem = await response.Content.ReadFromJsonAsync<ProblemDto>();
+    Assert.Equal(400, problem!.Status);
   }
 
   [Fact]
@@ -134,6 +158,9 @@ public class ItemEndpointsTests : IClassFixture<ItemApiFactory>
     var response = await _client.PostAsync("/items", content);
 
     Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+    var problem = await response.Content.ReadFromJsonAsync<ProblemDto>();
+    Assert.Equal("Bad Request", problem!.Title);
   }
 
   [Fact]
