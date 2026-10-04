@@ -23,6 +23,10 @@ lint:
 lint-fix:
     mise exec -- flint run --fix
 
+# Run the code-metrics analyzer gate over the C# sources.
+complexity:
+    mise exec -- dotnet build --warnaserror
+
 # Run the AI-slop gate.
 aislop:
     npx --yes aislop@0.16.1 ci
@@ -43,8 +47,8 @@ spec:
 serve:
     mise run serve
 
-# Lint and test.
-verify: lint test
+# Lint, check complexity, and test.
+verify: lint complexity test
 
 # Prune remote-tracking refs and delete local branches merged into main.
 prune:
