@@ -2,8 +2,17 @@ using Fixture.Dotnet.Api;
 using Fixture.Dotnet.Service;
 using Fixture.Dotnet.Store;
 using Microsoft.OpenApi;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ASP.NET Core reads numbers from JSON strings by default, which widens the
+// generated schema for every numeric field. Values on the wire are numbers, so
+// pin strict handling and keep the contract honest.
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+  options.SerializerOptions.NumberHandling = JsonNumberHandling.Strict;
+});
 
 builder.Services.AddOpenApi("v1", options =>
 {
