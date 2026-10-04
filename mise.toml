@@ -28,4 +28,4 @@ run = "dotnet test"
 
 [tasks.serve]
 description = "Build and serve the API on http://127.0.0.1:5080"
-run = "dotnet run --project src/Api"
+run = "dotnet run --project src/Host"

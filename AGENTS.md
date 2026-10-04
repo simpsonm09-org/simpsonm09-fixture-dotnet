@@ -4,7 +4,7 @@ A layered ASP.NET Core item CRUD service. It is the C# fixture for the fleet sta
 
 ## Ground rules
 
-- Business logic lives in `src/Service/` and works in `Domain.Item`. The endpoint layer never touches the store and the service never sees a DTO. Only `src/Api/ItemMapper.cs` bridges DTOs and the domain; only the store adapter bridges the port and its records. The assembly references enforce the boundary.
+- Business logic lives in `src/Service/` and works in `Domain.Item`. The endpoint layer never touches the store and the service never sees a DTO. Only `src/Api/ItemMapper.cs` bridges DTOs and the domain; only the store adapter bridges the port and its records. Only the `src/Host/` composition root references the store adapter and binds it to the port. The assembly references enforce the boundary.
 - `docs/openapi.json` is generated. Annotate the endpoints and the DTOs and run `just spec`; never hand-edit the document. A test fails when the committed document drifts.
 - The store is in memory. A restart discards items and restores the three dev seeds.
 - No secret, credential, or machine path is committed.

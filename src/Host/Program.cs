@@ -22,6 +22,7 @@ builder.Services.AddOpenApi("v1", options =>
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ItemNotFoundExceptionHandler>();
 builder.Services.AddExceptionHandler<BadRequestBodyHandler>();
+builder.Services.AddApiValidation();
 builder.Services.AddValidation();
 builder.Services.AddSingleton<IItemRepository, InMemoryItemRepository>();
 builder.Services.AddSingleton<IItemService, ItemService>();
