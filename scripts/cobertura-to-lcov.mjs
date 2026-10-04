@@ -44,6 +44,30 @@ function findCobertura(dir) {
   return found[0];
 }
 
+// Coverlet records each <class filename> relative to a <source> root (the
+// directory the project builds from). The lcov `SF:` path must be relative to
+// the repository root and use forward slashes, so it lines up with the paths
+// `git diff` reports.
+function reportSources(xml) {
+  const block = /<sources>([\s\S]*?)<\/sources>/.exec(xml);
+  if (!block) return [];
+  const sources = [];
+  for (const match of block[1].matchAll(/<source>([\s\S]*?)<\/source>/g)) {
+    sources.push(match[1].trim());
+  }
+  return sources;
+}
+
+function resolveSource(raw, sources, root) {
+  if (isAbsolute(raw)) return toPosix(relative(root, raw));
+  for (const source of sources) {
+    const candidate = resolve(root, source, raw);
+    if (existsSync(candidate)) return toPosix(relative(root, candidate));
+  }
+  if (sources.length > 0) return toPosix(relative(root, resolve(root, sources[0], raw)));
+  return toPosix(raw);
+}
+
 // Coverlet repeats every line inside the per-method <lines> blocks, so only the
 // class-level <lines> element (the last one in the class) is a complete record.
 function classLines(classBody) {
@@ -58,12 +82,12 @@ function classLines(classBody) {
 
 function convert(xml, root) {
   const sources = new Map();
+  const sourceRoots = reportSources(xml);
   const classPattern = /<class\b[^>]*\bfilename="([^"]+)"[^>]*>([\s\S]*?)<\/class>/g;
   for (const match of xml.matchAll(classPattern)) {
     const lines = classLines(match[2]);
     if (lines.length === 0) continue;
-    const raw = match[1];
-    const source = isAbsolute(raw) ? toPosix(relative(root, raw)) : toPosix(raw);
+    const source = resolveSource(match[1], sourceRoots, root);
     if (source.includes('/obj/') || source.includes('/bin/')) continue;
     const merged = sources.get(source) ?? new Map();
     for (const [number, hits] of lines) {
