@@ -18,17 +18,16 @@ public sealed class ItemService : IItemService
 
   public Item GetItem(long id) => _repository.FindById(id) ?? throw new ItemNotFoundException(id);
 
-  public Item CreateItem(string name, string? description) =>
-    _repository.Save(new Item(null, name, description));
+  public Item CreateItem(Item item) => _repository.Save(item with { Id = null });
 
-  public Item UpdateItem(long id, string name, string? description)
+  public Item UpdateItem(long id, Item item)
   {
     if (!_repository.ExistsById(id))
     {
       throw new ItemNotFoundException(id);
     }
 
-    return _repository.Save(new Item(id, name, description));
+    return _repository.Save(item with { Id = id });
   }
 
   public void DeleteItem(long id)

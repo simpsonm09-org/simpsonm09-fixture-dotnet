@@ -9,9 +9,9 @@ public interface IItemService
 
   Item GetItem(long id);
 
-  Item CreateItem(string name, string? description);
+  Item CreateItem(Item item);
 
-  Item UpdateItem(long id, string name, string? description);
+  Item UpdateItem(long id, Item item);
 
   void DeleteItem(long id);
 }

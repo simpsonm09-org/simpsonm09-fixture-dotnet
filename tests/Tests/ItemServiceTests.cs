@@ -45,7 +45,7 @@ public class ItemServiceTests
   {
     var repository = new FakeItemRepository();
 
-    var created = new ItemService(repository).CreateItem("Gadget", "A handy gadget");
+    var created = new ItemService(repository).CreateItem(new Item(null, "Gadget", "A handy gadget"));
 
     Assert.Equal(1, repository.SaveCalls);
     Assert.Equal("Gadget", created.Name);
@@ -58,7 +58,7 @@ public class ItemServiceTests
     var repository = new FakeItemRepository();
     var stored = repository.Save(new Item(null, "Widget", null));
 
-    var updated = new ItemService(repository).UpdateItem(stored.Id!.Value, "Renamed", null);
+    var updated = new ItemService(repository).UpdateItem(stored.Id!.Value, new Item(null, "Renamed", null));
 
     Assert.Equal(stored.Id, updated.Id);
     Assert.Equal("Renamed", updated.Name);
@@ -71,7 +71,7 @@ public class ItemServiceTests
     var repository = new FakeItemRepository();
 
     Assert.Throws<ItemNotFoundException>(
-      () => new ItemService(repository).UpdateItem(404, "Nope", null));
+      () => new ItemService(repository).UpdateItem(404, new Item(null, "Nope", null)));
     Assert.Equal(0, repository.SaveCalls);
   }
 

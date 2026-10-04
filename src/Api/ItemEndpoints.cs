@@ -29,7 +29,7 @@ public static class ItemEndpoints
     group
       .MapPost("/", (ItemRequest request, IItemService service) =>
       {
-        var created = service.CreateItem(request.Name, request.Description);
+        var created = service.CreateItem(ItemMapper.ToDomain(request));
         return Results.Created($"/items/{created.Id}", ItemMapper.ToResponse(created));
       })
       .WithName("createItem")
@@ -40,7 +40,7 @@ public static class ItemEndpoints
     group
       .MapPut("/{id:long}", (long id, ItemRequest request, IItemService service) =>
         Results.Ok(ItemMapper.ToResponse(
-          service.UpdateItem(id, request.Name, request.Description))))
+          service.UpdateItem(id, ItemMapper.ToDomain(request)))))
       .WithName("updateItem")
       .WithSummary("Replace an item")
       .Produces<ItemResponse>(StatusCodes.Status200OK)
