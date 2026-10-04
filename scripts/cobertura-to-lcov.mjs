@@ -28,6 +28,21 @@ function toPosix(value) {
   return value.split('\\').join('/');
 }
 
+function attribute(attributes, name) {
+  const match = new RegExp(`\\b${name}="([^"]*)"`).exec(attributes);
+  return match ? match[1] : null;
+}
+
+// Coverlet escapes method names in XML, so `<Main>$` arrives as `&lt;Main&gt;$`.
+function decodeEntities(value) {
+  return value
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, '&');
+}
+
 function findCobertura(dir) {
   if (!existsSync(dir)) return null;
   const found = [];
@@ -70,14 +85,47 @@ function resolveSource(raw, sources, root) {
 
 // Coverlet repeats every line inside the per-method <lines> blocks, so only the
 // class-level <lines> element (the last one in the class) is a complete record.
+// Branch lines carry a condition-coverage attribute like "50% (1/2)".
 function classLines(classBody) {
   let body = '';
   for (const match of classBody.matchAll(/<lines>([\s\S]*?)<\/lines>/g)) body = match[1];
   const lines = [];
-  for (const match of body.matchAll(/<line\b[^>]*\bnumber="(\d+)"[^>]*\bhits="(\d+)"/g)) {
-    lines.push([Number(match[1]), Number(match[2])]);
+  const branches = new Map();
+  for (const match of body.matchAll(/<line\b([^>]*)>/g)) {
+    const attributes = match[1];
+    const number = Number(attribute(attributes, 'number'));
+    const hits = Number(attribute(attributes, 'hits'));
+    if (!Number.isFinite(number) || !Number.isFinite(hits)) continue;
+    lines.push([number, hits]);
+    if (attribute(attributes, 'branch') !== 'True') continue;
+    const coverage = /\((\d+)\/(\d+)\)/.exec(attribute(attributes, 'condition-coverage') ?? '');
+    if (coverage) branches.set(number, { covered: Number(coverage[1]), total: Number(coverage[2]) });
   }
-  return lines.sort((a, b) => a[0] - b[0]);
+  return { lines: lines.sort((a, b) => a[0] - b[0]), branches };
+}
+
+// Each <method> has no line attribute, so the function line is the first line
+// in its own <lines> block. The method is "hit" when any of those lines ran.
+function classMethods(classBody) {
+  const block = /<methods>([\s\S]*?)<\/methods>/.exec(classBody);
+  if (!block) return [];
+  const methods = [];
+  for (const match of block[1].matchAll(/<method\b([^>]*)>([\s\S]*?)<\/method>/g)) {
+    const name = attribute(match[1], 'name');
+    const lines = /<lines>([\s\S]*?)<\/lines>/.exec(match[2]);
+    if (!name || !lines) continue;
+    let first = Infinity;
+    let executed = false;
+    for (const line of lines[1].matchAll(/<line\b([^>]*)>/g)) {
+      const number = Number(attribute(line[1], 'number'));
+      const hits = Number(attribute(line[1], 'hits'));
+      if (Number.isFinite(number)) first = Math.min(first, number);
+      if (hits > 0) executed = true;
+    }
+    if (!Number.isFinite(first)) continue;
+    methods.push({ name: decodeEntities(name), line: first, hits: executed ? 1 : 0 });
+  }
+  return methods;
 }
 
 function convert(xml, root) {
@@ -85,28 +133,54 @@ function convert(xml, root) {
   const sourceRoots = reportSources(xml);
   const classPattern = /<class\b[^>]*\bfilename="([^"]+)"[^>]*>([\s\S]*?)<\/class>/g;
   for (const match of xml.matchAll(classPattern)) {
-    const lines = classLines(match[2]);
+    const { lines, branches } = classLines(match[2]);
     if (lines.length === 0) continue;
     const source = resolveSource(match[1], sourceRoots, root);
     if (source.includes('/obj/') || source.includes('/bin/')) continue;
-    const merged = sources.get(source) ?? new Map();
+    const merged = sources.get(source) ?? { lines: new Map(), branches: new Map(), methods: [], names: new Set() };
     for (const [number, hits] of lines) {
-      merged.set(number, Math.max(merged.get(number) ?? 0, hits));
+      merged.lines.set(number, Math.max(merged.lines.get(number) ?? 0, hits));
+    }
+    for (const [number, branch] of branches) {
+      const current = merged.branches.get(number);
+      if (current) {
+        current.covered = Math.max(current.covered, branch.covered);
+        current.total = Math.max(current.total, branch.total);
+      } else {
+        merged.branches.set(number, { ...branch });
+      }
+    }
+    for (const method of classMethods(match[2])) {
+      if (merged.names.has(method.name)) continue;
+      merged.names.add(method.name);
+      merged.methods.push(method);
     }
     sources.set(source, merged);
   }
 
   const records = [];
-  for (const [source, lines] of sources) {
-    const sorted = [...lines.entries()].sort((a, b) => a[0] - b[0]);
+  for (const [source, data] of sources) {
+    const sorted = [...data.lines.entries()].sort((a, b) => a[0] - b[0]);
     const hit = sorted.filter(([, hits]) => hits > 0).length;
-    records.push([
-      `SF:${source}`,
-      ...sorted.map(([number, hits]) => `DA:${number},${hits}`),
-      `LF:${sorted.length}`,
-      `LH:${hit}`,
-      'end_of_record',
-    ].join('\n'));
+    const branchesCovered = [...data.branches.values()].reduce((sum, branch) => sum + branch.covered, 0);
+    const branchesTotal = [...data.branches.values()].reduce((sum, branch) => sum + branch.total, 0);
+    const record = [`SF:${source}`];
+    for (const method of data.methods) record.push(`FN:${method.line},${method.name}`);
+    for (const method of data.methods) record.push(`FNDA:${method.hits},${method.name}`);
+    for (const [number, hits] of sorted) record.push(`DA:${number},${hits}`);
+    for (const [number, branch] of [...data.branches.entries()].sort((a, b) => a[0] - b[0])) {
+      for (let index = 0; index < branch.total; index += 1) {
+        record.push(`BRDA:${number},0,${index},${index < branch.covered ? 1 : 0}`);
+      }
+    }
+    record.push(`LF:${sorted.length}`);
+    record.push(`LH:${hit}`);
+    record.push(`BRF:${branchesTotal}`);
+    record.push(`BRH:${branchesCovered}`);
+    record.push(`FNF:${data.methods.length}`);
+    record.push(`FNH:${data.methods.filter((method) => method.hits > 0).length}`);
+    record.push('end_of_record');
+    records.push(record.join('\n'));
   }
   return records.length > 0 ? `${records.join('\n')}\n` : '';
 }
