@@ -42,7 +42,7 @@ public class OpenApiDocumentTests : IClassFixture<ItemApiFactory>
       WriteIndented = true,
       Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
-    return node.ToJsonString(options) + "\n";
+    return node.ToJsonString(options).Replace("\r\n", "\n") + "\n";
   }
 
   private static string RepoRoot()
