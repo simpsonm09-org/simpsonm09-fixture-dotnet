@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 const result = spawnSync(
   'mise',
   ['exec', '--', 'dotnet', 'test', '--filter', 'FullyQualifiedName~OpenApiDocumentTests'],
-  { stdio: 'inherit', env: { ...process.env, WRITE_OPENAPI: '1' } },
+  { windowsHide: true, stdio: 'inherit', env: { ...process.env, WRITE_OPENAPI: '1' } },
 );
 
 process.exit(result.status ?? 1);

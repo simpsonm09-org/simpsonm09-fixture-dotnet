@@ -5,7 +5,7 @@
 import { spawnSync } from 'node:child_process';
 
 function run(command, args) {
-  return spawnSync(command, args, { stdio: 'inherit' });
+  return spawnSync(command, args, { stdio: 'inherit', windowsHide: true });
 }
 
 const test = run('mise', ['exec', '--', 'dotnet', 'test', '--collect', 'XPlat Code Coverage']);
