@@ -1,6 +1,6 @@
 # Documentation
 
-Index for the `simpsonm09-fixture-dotnet` service, a layered ASP.NET Core item CRUD API.
+Index for the `fixture-dotnet` service, a layered ASP.NET Core item CRUD API.
 
 ## Guides
 

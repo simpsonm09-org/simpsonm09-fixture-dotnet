@@ -50,7 +50,7 @@ public class OpenApiDocumentTests : IClassFixture<ItemApiFactory>
     var directory = new DirectoryInfo(AppContext.BaseDirectory);
     while (directory is not null)
     {
-      if (File.Exists(Path.Combine(directory.FullName, "simpsonm09-fixture-dotnet.slnx")))
+      if (File.Exists(Path.Combine(directory.FullName, "fixture-dotnet.slnx")))
       {
         return directory.FullName;
       }
