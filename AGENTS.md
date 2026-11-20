@@ -1,4 +1,4 @@
-# simpsonm09-fixture-dotnet working agreements
+# fixture-dotnet working agreements
 
 A layered ASP.NET Core item CRUD service. It is the C# fixture for the fleet standard.
 

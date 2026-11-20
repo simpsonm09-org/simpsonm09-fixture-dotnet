@@ -1,8 +1,8 @@
-# simpsonm09-fixture-dotnet
+# fixture-dotnet
 
 An ASP.NET Core item CRUD service. It is the C# fixture for the simpsonm09 fleet standard.
 
-This repository lives in `simpsonm09-projects/simpsonm09-fixture-dotnet`. Work happens on a branch
+This repository lives in `simpsonm09-projects/fixture-dotnet`. Work happens on a branch
 with a pull request into `main`.
 See [`repo-standard`](https://github.com/simpsonm09-projects/simpsonm09-repo-standard)
 for the branch model and the protection rules.
